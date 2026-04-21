@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}New Lead — FirstLook{% endblock %}
+
+{% block content %}
+
+<!-- Back link -->
+<a href="/leads" class="text-fl-subtext text-xs font-mono hover:text-fl-accent transition-colors mb-6 inline-block">
+    ← Back to Leads
+</a>
+
+<!-- Page header -->
+<div class="mb-8">
+    <h1 class="text-2xl font-bold tracking-tight">New Lead</h1>
+    <p class="text-fl-subtext text-sm mt-1 font-mono">Create a prospect to begin the discovery workflow.</p>
+</div>
+
+<!-- Form -->
+<div class="max-w-xl">
+    <form method="POST" action="/leads/create">
+
+        <div class="border border-fl-border rounded overflow-hidden">
+
+            <!-- Company -->
+            <div class="px-6 py-5 border-b border-fl-border">
+                <label class="block text-xs font-mono uppercase tracking-widest text-fl-subtext mb-2">
+                    Company Name <span class="text-fl-accent">*</span>
+                </label>
+                <input
+                    type="text"
+                    name="name"
+                    required
+                    autofocus
+                    placeholder="Acme Corp"
+                    class="w-full bg-fl-bg border border-fl-border rounded px-4 py-2.5 text-sm
+                           text-fl-text placeholder-fl-dim
+                           focus:outline-none focus:border-fl-accent transition-colors"
+                />
+            </div>
+
+            <!-- Contact Name -->
+            <div class="px-6 py-5 border-b border-fl-border">
+                <label class="block text-xs font-mono uppercase tracking-widest text-fl-subtext mb-2">
+                    Primary Contact
+                </label>
+                <input
+                    type="text"
+                    name="contact_name"
+                    placeholder="Jane Smith"
+                    class="w-full bg-fl-bg border border-fl-border rounded px-4 py-2.5 text-sm
+                           text-fl-text placeholder-fl-dim
+                           focus:outline-none focus:border-fl-accent transition-colors"
+                />
+            </div>
+
+            <!-- Contact Email -->
+            <div class="px-6 py-5 border-b border-fl-border">
+                <label class="block text-xs font-mono uppercase tracking-widest text-fl-subtext mb-2">
+                    Email
+                </label>
+                <input
+                    type="email"
+                    name="contact_email"
+                    placeholder="jane@acmecorp.com"
+                    class="w-full bg-fl-bg border border-fl-border rounded px-4 py-2.5 text-sm
+                           text-fl-text placeholder-fl-dim font-mono
+                           focus:outline-none focus:border-fl-accent transition-colors"
+                />
+            </div>
+
+            <!-- Contact Phone -->
+            <div class="px-6 py-5">
+                <label class="block text-xs font-mono uppercase tracking-widest text-fl-subtext mb-2">
+                    Phone
+                </label>
+                <input
+                    type="tel"
+                    name="contact_phone"
+                    placeholder="+1 555 000 0000"
+                    class="w-full bg-fl-bg border border-fl-border rounded px-4 py-2.5 text-sm
+                           text-fl-text placeholder-fl-dim font-mono
+                           focus:outline-none focus:border-fl-accent transition-colors"
+                />
+            </div>
+
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center gap-3 mt-5">
+            <button
+                type="submit"
+                class="px-6 py-2.5 bg-fl-accent text-fl-bg text-sm font-bold tracking-widest uppercase
+                       hover:bg-fl-accentlt transition-colors rounded">
+                Create Lead
+            </button>
+            <a href="/leads"
+               class="px-6 py-2.5 border border-fl-border text-fl-subtext text-sm font-mono
+                      hover:text-fl-text hover:border-fl-muted transition-colors rounded">
+                Cancel
+            </a>
+        </div>
+
+    </form>
+</div>
+
+{% endblock %}

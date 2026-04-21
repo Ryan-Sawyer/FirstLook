@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}New Scan — {{ client.name }} — FirstLook{% endblock %}
+
+{% block content %}
+
+<a href="/leads/{{ client.client_uuid }}" class="text-fl-subtext text-xs font-mono hover:text-fl-accent transition-colors mb-6 inline-block">
+    ← Back to {{ client.name }}
+</a>
+
+<div class="mb-8">
+    <h1 class="text-2xl font-bold tracking-tight">New Scan</h1>
+    <p class="text-fl-subtext text-sm mt-1 font-mono">
+        Dispatch a discovery job to an agent in <span class="text-fl-text">{{ client.name }}</span>'s network.
+    </p>
+</div>
+
+<div class="max-w-xl">
+    <form method="POST" action="/scans/{{ client.client_uuid }}/new">
+
+        <div class="border border-fl-border rounded overflow-hidden mb-5">
+
+            <!-- Agent -->
+            <div class="px-6 py-5 border-b border-fl-border">
+                <label class="block text-xs font-mono uppercase tracking-widest text-fl-subtext mb-2">
+                    Agent <span class="text-fl-accent">*</span>
+                </label>
+                <select name="agent_uuid"
+                        class="w-full bg-fl-bg border border-fl-border rounded px-4 py-2.5 text-sm
+                               font-mono text-fl-text focus:outline-none focus:border-fl-accent transition-colors">
+                    {% for agent in agents %}
+                    <option value="{{ agent.agent_uuid }}">
+                        {{ agent.name }} — {{ agent.ip_address or 'unknown IP' }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Scan type -->
+            <div class="px-6 py-5 border-b border-fl-border">
+                <label class="block text-xs font-mono uppercase tracking-widest text-fl-subtext mb-3">
+                    Scan Type <span class="text-fl-accent">*</span>
+                </label>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="flex items-start gap-3 border border-fl-border rounded px-4 py-3 cursor-pointer
+                                  has-[:checked]:border-fl-accent has-[:checked]:bg-fl-accent/5 transition-colors">
+                        <input type="radio" name="scan_type" value="basic" checked class="mt-0.5 accent-amber-400" />
+                        <div>
+                            <p class="text-sm font-semibold">Basic</p>
+                            <p class="text-xs font-mono text-fl-dim mt-0.5">Ping sweep, top ports, SNMP public, DNS</p>
+                        </div>
+                    </label>
+                    <label class="flex items-start gap-3 border border-fl-border rounded px-4 py-3 cursor-pointer
+                                  has-[:checked]:border-fl-accent has-[:checked]:bg-fl-accent/5 transition-colors">
+                        <input type="radio" name="scan_type" value="deep" class="mt-0.5 accent-amber-400" />
+                        <div>
+                            <p class="text-sm font-semibold">Deep</p>
+                            <p class="text-xs font-mono text-fl-dim mt-0.5">Full ports, service versions, aggressive OS</p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Target subnets -->
+            <div class="px-6 py-5">
+                <label class="block text-xs font-mono uppercase tracking-widest text-fl-subtext mb-2">
+                    Target Subnets <span class="text-fl-accent">*</span>
+                </label>
+                <textarea
+                    name="target_subnets"
+                    rows="4"
+                    required
+                    placeholder="192.168.1.0/24&#10;10.0.0.0/24"
+                    class="w-full bg-fl-bg border border-fl-border rounded px-4 py-2.5 text-sm
+                           text-fl-text placeholder-fl-dim font-mono
+                           focus:outline-none focus:border-fl-accent transition-colors resize-none"
+                ></textarea>
+                <p class="text-fl-dim text-xs font-mono mt-2">One CIDR range per line.</p>
+            </div>
+
+        </div>
+
+        <div class="flex items-center gap-3">
+            <button type="submit"
+                    class="px-6 py-2.5 bg-fl-accent text-fl-bg text-sm font-bold tracking-widest uppercase
+                           hover:bg-fl-accentlt transition-colors rounded">
+                Dispatch Scan
+            </button>
+            <a href="/leads/{{ client.client_uuid }}"
+               class="px-6 py-2.5 border border-fl-border text-fl-subtext text-sm font-mono
+                      hover:text-fl-text transition-colors rounded">
+                Cancel
+            </a>
+        </div>
+
+    </form>
+</div>
+
+{% endblock %}

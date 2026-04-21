@@ -1,0 +1,54 @@
+# =============================================================
+# FirstLook Control Server — Python Dependencies
+# =============================================================
+# Pin major versions for reproducible builds.
+# Run `pip install -r requirements.txt` to install.
+# =============================================================
+
+# -------------------------------------------------------------
+# Web Framework
+# -------------------------------------------------------------
+fastapi==0.115.0
+uvicorn[standard]==0.30.6         # ASGI server — [standard] includes uvloop and httptools
+
+# -------------------------------------------------------------
+# Templating & Static Files
+# -------------------------------------------------------------
+jinja2==3.1.4
+python-multipart==0.0.9           # Required for form data parsing in FastAPI
+
+# -------------------------------------------------------------
+# Database
+# -------------------------------------------------------------
+sqlalchemy==2.0.35
+psycopg2-binary==2.9.9            # PostgreSQL driver
+alembic==1.13.3                   # Schema migrations
+
+# -------------------------------------------------------------
+# Settings & Validation
+# -------------------------------------------------------------
+pydantic==2.9.2
+pydantic-settings==2.5.2          # .env file loading for Settings class
+email-validator==2.2.0            # Required for Pydantic EmailStr field
+
+# -------------------------------------------------------------
+# HTTP Client (ITflow integration)
+# -------------------------------------------------------------
+httpx==0.27.2
+
+# -------------------------------------------------------------
+# Scheduling
+# -------------------------------------------------------------
+apscheduler==3.10.4
+
+# -------------------------------------------------------------
+# Security
+# -------------------------------------------------------------
+passlib[bcrypt]==1.7.4            # Available if you move to bcrypt for token hashing later
+
+# -------------------------------------------------------------
+# Development & Testing (not needed in production)
+# -------------------------------------------------------------
+pytest==8.3.3
+pytest-asyncio==0.24.0
+httpx==0.27.2                     # Also used for TestClient in FastAPI tests

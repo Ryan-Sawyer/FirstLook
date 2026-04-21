@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Prep Agent — {{ client.name }} — FirstLook{% endblock %}
+
+{% block content %}
+
+<a href="/leads/{{ client.client_uuid }}" class="text-fl-subtext text-xs font-mono hover:text-fl-accent transition-colors mb-6 inline-block">
+    ← Back to {{ client.name }}
+</a>
+
+<div class="mb-8">
+    <h1 class="text-2xl font-bold tracking-tight">Prep Agent</h1>
+    <p class="text-fl-subtext text-sm mt-1 font-mono">
+        Deploy a discovery agent into <span class="text-fl-text">{{ client.name }}</span>'s network.
+    </p>
+</div>
+
+{% if not show_token %}
+<!-- ═══ Prep form ════════════════════════════════ -->
+<div class="max-w-xl">
+    <form method="POST" action="/agents/prep/{{ client.client_uuid }}">
+
+        <div class="border border-fl-border rounded overflow-hidden mb-5">
+            <div class="px-6 py-5">
+                <label class="block text-xs font-mono uppercase tracking-widest text-fl-subtext mb-2">
+                    Agent Name <span class="text-fl-accent">*</span>
+                </label>
+                <input
+                    type="text"
+                    name="name"
+                    required
+                    autofocus
+                    placeholder="e.g. VLAN10-Agent, SiteA-Agent"
+                    class="w-full bg-fl-bg border border-fl-border rounded px-4 py-2.5 text-sm
+                           text-fl-text placeholder-fl-dim font-mono
+                           focus:outline-none focus:border-fl-accent transition-colors"
+                />
+                <p class="text-fl-dim text-xs font-mono mt-2">
+                    Use a name that identifies the network segment — you may deploy multiple agents per client.
+                </p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <button type="submit"
+                    class="px-6 py-2.5 bg-fl-accent text-fl-bg text-sm font-bold tracking-widest uppercase
+                           hover:bg-fl-accentlt transition-colors rounded">
+                Generate Token
+            </button>
+            <a href="/leads/{{ client.client_uuid }}"
+               class="px-6 py-2.5 border border-fl-border text-fl-subtext text-sm font-mono
+                      hover:text-fl-text transition-colors rounded">
+                Cancel
+            </a>
+        </div>
+
+    </form>
+</div>
+
+{% else %}
+<!-- ═══ Token + install command ══════════════════ -->
+<div class="max-w-2xl space-y-5">
+
+    <!-- Warning banner -->
+    <div class="border border-fl-warning bg-fl-warning/5 rounded px-5 py-4 flex gap-3">
+        <svg viewBox="0 0 24 24" class="w-4 h-4 fill-none stroke-fl-warning shrink-0 mt-0.5" stroke-width="2">
+            <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        </svg>
+        <div>
+            <p class="text-fl-warning text-xs font-bold uppercase tracking-widest font-mono mb-1">Token shown once</p>
+            <p class="text-fl-subtext text-sm">
+                Copy the install command below. The token will not be shown again.
+                If you lose it, decommission this agent and prep a new one.
+            </p>
+        </div>
+    </div>
+
+    <!-- Agent details -->
+    <div class="border border-fl-border rounded overflow-hidden">
+        <div class="px-5 py-3 bg-fl-surface border-b border-fl-border flex items-center justify-between">
+            <span class="text-xs font-mono uppercase tracking-widest text-fl-subtext">Agent Details</span>
+            <span class="badge badge-pending">
+                <span class="dot dot-pending"></span>
+                pending
+            </span>
+        </div>
+        <div class="divide-y divide-fl-border">
+            <div class="px-5 py-3 flex items-center justify-between">
+                <span class="text-xs font-mono text-fl-subtext uppercase tracking-widest">Name</span>
+                <span class="text-sm font-semibold">{{ agent.name }}</span>
+            </div>
+            <div class="px-5 py-3 flex items-center justify-between">
+                <span class="text-xs font-mono text-fl-subtext uppercase tracking-widest">Agent UUID</span>
+                <span class="text-xs font-mono text-fl-subtext">{{ agent.agent_uuid }}</span>
+            </div>
+            <div class="px-5 py-3 flex items-center justify-between">
+                <span class="text-xs font-mono text-fl-subtext uppercase tracking-widest">Token</span>
+                <span class="text-xs font-mono text-fl-accent">{{ plain_token }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Install command -->
+    <div class="border border-fl-border rounded overflow-hidden">
+        <div class="px-5 py-3 bg-fl-surface border-b border-fl-border flex items-center justify-between">
+            <span class="text-xs font-mono uppercase tracking-widest text-fl-subtext">Install Command</span>
+            <button onclick="copyInstall()"
+                    class="text-xs font-mono text-fl-accent hover:text-fl-accentlt transition-colors">
+                Copy
+            </button>
+        </div>
+        <div class="px-5 py-4 bg-fl-bg">
+            <code id="install-cmd" class="text-xs font-mono text-fl-success break-all leading-relaxed">
+                {{ install_command }}
+            </code>
+        </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="border border-fl-border rounded overflow-hidden">
+        <div class="px-5 py-3 bg-fl-surface border-b border-fl-border">
+            <span class="text-xs font-mono uppercase tracking-widest text-fl-subtext">Next Steps</span>
+        </div>
+        <ol class="divide-y divide-fl-border">
+            <li class="px-5 py-4 flex gap-4 text-sm">
+                <span class="text-fl-accent font-mono font-bold text-xs shrink-0 mt-0.5">01</span>
+                <span class="text-fl-subtext">
+                    SSH into a Linux box inside the target network segment
+                    (one agent per VLAN or subnet).
+                </span>
+            </li>
+            <li class="px-5 py-4 flex gap-4 text-sm">
+                <span class="text-fl-accent font-mono font-bold text-xs shrink-0 mt-0.5">02</span>
+                <span class="text-fl-subtext">
+                    Paste and run the install command above. It will download
+                    the agent, register with this server, and start listening for scan jobs.
+                </span>
+            </li>
+            <li class="px-5 py-4 flex gap-4 text-sm">
+                <span class="text-fl-accent font-mono font-bold text-xs shrink-0 mt-0.5">03</span>
+                <span class="text-fl-subtext">
+                    Return here and check the agent status — it should move from
+                    <span class="badge badge-pending mx-1">pending</span> to
+                    <span class="badge badge-active mx-1">active</span> within a few seconds.
+                </span>
+            </li>
+            <li class="px-5 py-4 flex gap-4 text-sm">
+                <span class="text-fl-accent font-mono font-bold text-xs shrink-0 mt-0.5">04</span>
+                <span class="text-fl-subtext">
+                    Once active, return to the lead and dispatch a scan job.
+                </span>
+            </li>
+        </ol>
+    </div>
+
+    <a href="/leads/{{ client.client_uuid }}"
+       class="inline-block px-6 py-2.5 border border-fl-border text-fl-subtext text-sm font-mono
+              hover:text-fl-text hover:border-fl-accent transition-colors rounded">
+        ← Back to {{ client.name }}
+    </a>
+
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyInstall() {
+    const text = document.getElementById('install-cmd').innerText.trim();
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = event.target;
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 2000);
+    });
+}
+</script>
+{% endblock %}

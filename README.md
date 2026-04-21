@@ -1,4 +1,9 @@
 # FirstLook
+# Development Status
+
+| WebUI | API | DATABASE | Agent | Deployment |
+|---|---|---|---|---|
+| Developing | Testing | Testing | Planning | Testing |
 
 > Lightweight, credential-free network discovery for MSPs. See the environment before the engagement.
 
@@ -37,7 +42,7 @@ Create Lead → Deploy Agent → Agent Scans → Results Push → Review → Go 
 
 ```
 ┌─────────────────────────────────────┐
-│       FirstLook Control Server       │
+│       FirstLook Control Server      │
 │  ┌──────────┐  ┌──────────────────┐ │
 │  │  Web UI  │  │    REST API      │ │
 │  │  (HTMX)  │  │  (FastAPI)       │ │

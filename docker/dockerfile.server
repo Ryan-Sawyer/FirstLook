@@ -1,0 +1,89 @@
+# =============================================================
+# FirstLook Control Server — Dockerfile
+# =============================================================
+# Multi-stage build:
+#   Stage 1 (builder) — installs dependencies into a venv
+#   Stage 2 (runtime) — copies only the venv and app code
+#
+# This keeps the final image lean by leaving build tools
+# (gcc, libpq-dev, pip cache) in the builder stage only.
+# =============================================================
+
+
+# -------------------------------------------------------------
+# Stage 1 — Builder
+# -------------------------------------------------------------
+FROM python:3.11-slim AS builder
+
+# Install system dependencies required to compile psycopg2
+# and other packages with C extensions
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create a virtual environment in /opt/venv
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy and install Python dependencies
+COPY control-server/requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+
+# -------------------------------------------------------------
+# Stage 2 — Runtime
+# -------------------------------------------------------------
+FROM python:3.11-slim AS runtime
+
+# Install only the runtime system dependency (libpq for psycopg2)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the virtual environment from the builder stage
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Create a non-root user to run the application
+# Running as root inside a container is a security risk
+RUN groupadd --gid 1001 firstlook && \
+    useradd --uid 1001 --gid firstlook --no-create-home firstlook
+
+# Set the working directory
+WORKDIR /app
+
+# Copy application code
+COPY --chown=firstlook:firstlook control-server/ .
+COPY --chown=firstlook:firstlook agent/ ./agent/
+
+# Switch to non-root user
+USER firstlook
+
+# Expose the application port
+EXPOSE 8000
+
+# -------------------------------------------------------------
+# Healthcheck
+# -------------------------------------------------------------
+# Docker will mark the container unhealthy if /health stops
+# responding. Pairs with the depends_on healthcheck in
+# docker-compose.yml.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD python -c "import httpx; httpx.get('http://localhost:8000/health').raise_for_status()"
+
+# -------------------------------------------------------------
+# Entrypoint
+# -------------------------------------------------------------
+# --host 0.0.0.0     Listen on all interfaces inside the container
+# --port 8000        Match the EXPOSE port above
+# --forwarded-allow-ips='*'  Trust forwarded headers if behind a
+#                            reverse proxy (nginx, Caddy etc.)
+# --no-access-log    Access logging handled at the proxy level
+#                    in production — remove this during development
+CMD ["uvicorn", "main:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8000", \
+     "--forwarded-allow-ips=*", \
+     "--no-access-log"]

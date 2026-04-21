@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Scan Results — {{ client.name }} — FirstLook{% endblock %}
+
+{% block content %}
+
+<a href="/leads/{{ client.client_uuid }}" class="text-fl-subtext text-xs font-mono hover:text-fl-accent transition-colors mb-6 inline-block">
+    ← Back to {{ client.name }}
+</a>
+
+<!-- Header -->
+<div class="flex items-start justify-between mb-8">
+    <div>
+        <div class="flex items-center gap-3 mb-1">
+            <h1 class="text-2xl font-bold tracking-tight">Scan Results</h1>
+            <span class="badge badge-{{ job.status.value }}">
+                <span class="dot dot-{{ job.status.value }}"></span>
+                {{ job.status.value }}
+            </span>
+            <span class="badge badge-{{ job.scan_type.value }}">{{ job.scan_type.value }}</span>
+        </div>
+        <p class="text-fl-subtext text-sm font-mono">
+            {{ client.name }} ·
+            {{ job.target_subnets | join(', ') }} ·
+            {% if job.completed_at %}
+                Completed {{ job.completed_at.strftime('%Y-%m-%d %H:%M') }}
+            {% elif job.started_at %}
+                Started {{ job.started_at.strftime('%Y-%m-%d %H:%M') }}
+            {% else %}
+                Queued
+            {% endif %}
+        </p>
+        <p class="text-fl-dim text-xs font-mono mt-0.5">{{ job.job_uuid }}</p>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex gap-2">
+        {% if job.status.value == 'complete' and assets %}
+        <!-- ITflow sync -->
+        <form method="POST" action="/api/itflow/sync/{{ client.client_uuid }}">
+            <button type="submit"
+                    class="px-4 py-2 border border-fl-border text-fl-subtext text-xs font-mono
+                           hover:text-fl-text hover:border-fl-accent transition-colors rounded">
+                Sync to ITflow
+            </button>
+        </form>
+        <!-- Go deeper -->
+        <a href="/scans/{{ job.job_uuid }}/deeper"
+           class="px-4 py-2 bg-fl-accent text-fl-bg text-xs font-bold tracking-widest uppercase
+                  hover:bg-fl-accentlt transition-colors rounded">
+            Go Deeper →
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Running state -->
+{% if job.status.value == 'running' %}
+<div class="border border-fl-warning/30 bg-fl-warning/5 rounded px-5 py-4 flex items-center gap-3 mb-6">
+    <span class="dot dot-running"></span>
+    <p class="text-sm text-fl-subtext font-mono">
+        Scan in progress — this page will update automatically.
+    </p>
+</div>
+{% endif %}
+
+<!-- Queued state -->
+{% if job.status.value == 'queued' %}
+<div class="border border-fl-info/30 bg-fl-info/5 rounded px-5 py-4 flex items-center gap-3 mb-6">
+    <span class="dot dot-queued"></span>
+    <p class="text-sm text-fl-subtext font-mono">
+        Waiting for agent to pick up this job.
+    </p>
+</div>
+{% endif %}
+
+<!-- Stats row -->
+{% if assets %}
+<div class="grid grid-cols-4 gap-4 mb-8">
+    {% set total = assets|length %}
+    {% set servers = assets|selectattr('asset_type.value', 'equalto', 'server')|list|length %}
+    {% set workstations = assets|selectattr('asset_type.value', 'equalto', 'workstation')|list|length %}
+    {% set network = assets|selectattr('asset_type.value', 'in', ['switch','router','ap'])|list|length %}
+
+    {% for label, value in [('Total Assets', total), ('Servers', servers), ('Workstations', workstations), ('Network Devices', network)] %}
+    <div class="border border-fl-border rounded px-5 py-4 bg-fl-surface">
+        <p class="text-3xl font-bold text-fl-accent font-mono">{{ value }}</p>
+        <p class="text-xs font-mono uppercase tracking-widest text-fl-subtext mt-1">{{ label }}</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Asset table -->
+<div class="border border-fl-border rounded overflow-hidden">
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="border-b border-fl-border bg-fl-surface">
+                <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">Hostname</th>
+                <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">Type</th>
+                <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">IP Address</th>
+                <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">MAC</th>
+                <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">OS</th>
+                <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">ITflow</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for asset in assets %}
+            <tr class="border-b border-fl-border last:border-0 hover:bg-fl-surface transition-colors">
+                <td class="px-5 py-3 font-semibold">
+                    {{ asset.hostname or '—' }}
+                </td>
+                <td class="px-5 py-3">
+                    <span class="text-xs font-mono text-fl-subtext">{{ asset.asset_type.value }}</span>
+                </td>
+                <td class="px-5 py-3 mono text-fl-subtext">
+                    {% if asset.interfaces %}
+                        {% set ip = asset.interfaces|selectattr('ipv4_address')|first %}
+                        {{ ip.ipv4_address if ip else '—' }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td class="px-5 py-3 mono text-fl-dim text-xs">
+                    {% if asset.interfaces %}
+                        {{ asset.interfaces[0].mac_address }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td class="px-5 py-3 mono text-fl-subtext text-xs">
+                    {{ asset.os_fingerprint or '—' }}
+                </td>
+                <td class="px-5 py-3">
+                    {% if asset.itflow_synced_at %}
+                        <span class="badge badge-active">Synced</span>
+                    {% else %}
+                        <span class="text-fl-dim text-xs font-mono">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% else %}
+{% if job.status.value == 'complete' %}
+<div class="border border-dashed border-fl-border rounded py-16 text-center">
+    <p class="text-fl-subtext text-sm">No assets discovered.</p>
+    <p class="text-fl-dim text-xs font-mono mt-1">Check the target subnets and agent connectivity.</p>
+</div>
+{% endif %}
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+{% if job.status.value in ['queued', 'running'] %}
+<script>
+    // Poll for updates every 5 seconds while job is active
+    setTimeout(() => location.reload(), 5000);
+</script>
+{% endif %}
+{% endblock %}

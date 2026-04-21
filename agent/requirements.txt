@@ -1,0 +1,19 @@
+# =============================================================
+# FirstLook Field Agent — Python Dependencies
+# =============================================================
+# Kept intentionally minimal. The agent needs to be easy to
+# deploy on any Linux box with minimal setup.
+# =============================================================
+
+# HTTP client — control server communication
+httpx==0.27.2
+
+# Nmap wrapper
+python-nmap==0.7.1
+
+# SNMP
+easysnmp==0.2.6
+
+# Scapy — used by lldp.py if lldpd/lldpctl is unavailable
+# as a fallback passive capture approach
+scapy==2.5.0

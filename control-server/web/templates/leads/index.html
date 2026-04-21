@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Leads — FirstLook{% endblock %}
+
+{% block content %}
+
+<!-- Page header -->
+<div class="flex items-center justify-between mb-8">
+    <div>
+        <h1 class="text-2xl font-bold tracking-tight">Leads</h1>
+        <p class="text-fl-subtext text-sm mt-1 font-mono">{{ clients|length }} total</p>
+    </div>
+    <a href="/leads/create"
+       class="px-4 py-2 bg-fl-accent text-fl-bg text-sm font-bold tracking-widest uppercase
+              hover:bg-fl-accentlt transition-colors rounded">
+        + New Lead
+    </a>
+</div>
+
+{% if clients %}
+<!-- Leads table -->
+<div class="border border-fl-border rounded overflow-hidden">
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="border-b border-fl-border bg-fl-surface">
+                <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">Company</th>
+                <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">Contact</th>
+                <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">Status</th>
+                <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">Created</th>
+                <th class="px-5 py-3"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for client in clients %}
+            <tr class="border-b border-fl-border last:border-0 hover:bg-fl-surface transition-colors group">
+                <td class="px-5 py-4 font-semibold">{{ client.name }}</td>
+                <td class="px-5 py-4 text-fl-subtext">
+                    {% if client.contact_name %}
+                        {{ client.contact_name }}
+                        {% if client.contact_email %}
+                        <span class="block font-mono text-xs text-fl-dim mt-0.5">{{ client.contact_email }}</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="text-fl-dim">—</span>
+                    {% endif %}
+                </td>
+                <td class="px-5 py-4">
+                    <span class="badge badge-{{ client.status.value }}">
+                        <span class="dot dot-{{ client.status.value }}"></span>
+                        {{ client.status.value }}
+                    </span>
+                </td>
+                <td class="px-5 py-4 mono text-fl-subtext">
+                    {{ client.created_at.strftime('%Y-%m-%d') }}
+                </td>
+                <td class="px-5 py-4 text-right">
+                    <a href="/leads/{{ client.client_uuid }}"
+                       class="text-fl-accent text-xs font-mono hover:text-fl-accentlt transition-colors opacity-0 group-hover:opacity-100">
+                        View →
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% else %}
+<!-- Empty state -->
+<div class="border border-dashed border-fl-border rounded-lg py-20 text-center">
+    <div class="w-12 h-12 border border-fl-border flex items-center justify-center mx-auto mb-4">
+        <svg viewBox="0 0 24 24" class="w-6 h-6 stroke-fl-dim fill-none" stroke-width="1.5">
+            <circle cx="11" cy="11" r="7"/>
+            <path d="M16.5 16.5L21 21" stroke-linecap="round"/>
+        </svg>
+    </div>
+    <p class="text-fl-subtext text-sm">No leads yet.</p>
+    <p class="text-fl-dim text-xs font-mono mt-1">Create your first lead to begin discovery.</p>
+    <a href="/leads/create"
+       class="inline-block mt-5 px-5 py-2 border border-fl-accent text-fl-accent text-sm font-mono
+              hover:bg-fl-accent hover:text-fl-bg transition-colors rounded">
+        Create Lead
+    </a>
+</div>
+{% endif %}
+
+{% endblock %}

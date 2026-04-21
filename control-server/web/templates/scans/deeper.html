@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Go Deeper — {{ client.name }} — FirstLook{% endblock %}
+
+{% block content %}
+
+<a href="/scans/{{ job.job_uuid }}/results" class="text-fl-subtext text-xs font-mono hover:text-fl-accent transition-colors mb-6 inline-block">
+    ← Back to Results
+</a>
+
+<div class="mb-8">
+    <h1 class="text-2xl font-bold tracking-tight">Go Deeper</h1>
+    <p class="text-fl-subtext text-sm mt-1 font-mono">
+        Run a deeper scan on <span class="text-fl-text">{{ client.name }}</span> using a more aggressive profile.
+    </p>
+</div>
+
+<!-- What we found summary -->
+<div class="border border-fl-border rounded overflow-hidden mb-8">
+    <div class="px-5 py-3 bg-fl-surface border-b border-fl-border">
+        <span class="text-xs font-mono uppercase tracking-widest text-fl-subtext">
+            From the basic scan — {{ assets|length }} assets discovered
+        </span>
+    </div>
+    <div class="divide-y divide-fl-border">
+        {% for asset in assets[:8] %}
+        <div class="px-5 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="text-xs font-mono text-fl-dim">{{ asset.asset_type.value }}</span>
+                <span class="text-sm font-semibold">{{ asset.hostname or 'Unknown' }}</span>
+            </div>
+            <div class="flex items-center gap-3">
+                {% if asset.interfaces %}
+                <span class="text-xs font-mono text-fl-subtext">
+                    {% set ip = asset.interfaces|selectattr('ipv4_address')|first %}
+                    {{ ip.ipv4_address if ip else '' }}
+                </span>
+                {% endif %}
+                {% if not asset.os_fingerprint %}
+                <span class="text-xs font-mono text-fl-warning">OS unknown</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        {% if assets|length > 8 %}
+        <div class="px-5 py-3 text-center">
+            <span class="text-xs font-mono text-fl-dim">+ {{ assets|length - 8 }} more assets</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Deep scan form -->
+{% if active_agents %}
+<div class="max-w-xl">
+    <form method="POST" action="/scans/{{ client.client_uuid }}/new">
+        <input type="hidden" name="scan_type" value="deep" />
+
+        <div class="border border-fl-border rounded overflow-hidden mb-5">
+
+            <!-- Agent selection -->
+            <div class="px-6 py-5 border-b border-fl-border">
+                <label class="block text-xs font-mono uppercase tracking-widest text-fl-subtext mb-2">
+                    Agent <span class="text-fl-accent">*</span>
+                </label>
+                <select name="agent_uuid"
+                        class="w-full bg-fl-bg border border-fl-border rounded px-4 py-2.5 text-sm
+                               font-mono text-fl-text focus:outline-none focus:border-fl-accent transition-colors">
+                    {% for agent in active_agents %}
+                    <option value="{{ agent.agent_uuid }}" {% if agent.agent_uuid == job.agent_uuid %}selected{% endif %}>
+                        {{ agent.name }} — {{ agent.ip_address or 'unknown IP' }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Target subnets — pre-filled from previous scan -->
+            <div class="px-6 py-5 border-b border-fl-border">
+                <label class="block text-xs font-mono uppercase tracking-widest text-fl-subtext mb-2">
+                    Target Subnets <span class="text-fl-accent">*</span>
+                </label>
+                <textarea
+                    name="target_subnets"
+                    rows="4"
+                    placeholder="192.168.1.0/24&#10;10.0.0.0/24"
+                    class="w-full bg-fl-bg border border-fl-border rounded px-4 py-2.5 text-sm
+                           text-fl-text placeholder-fl-dim font-mono
+                           focus:outline-none focus:border-fl-accent transition-colors resize-none"
+                >{{ job.target_subnets | join('\n') }}</textarea>
+                <p class="text-fl-dim text-xs font-mono mt-2">One CIDR range per line.</p>
+            </div>
+
+            <!-- Deep scan details -->
+            <div class="px-6 py-5 bg-fl-surface/50">
+                <p class="text-xs font-mono uppercase tracking-widest text-fl-subtext mb-3">
+                    Deep scan includes
+                </p>
+                <ul class="space-y-2">
+                    {% for item in [
+                        'Full port scan (1–65535)',
+                        'Service and version detection',
+                        'OS fingerprinting (aggressive)',
+                        'SNMP walk — all public OIDs',
+                        'LLDP neighbour discovery',
+                        'Reverse DNS on all discovered IPs'
+                    ] %}
+                    <li class="flex items-center gap-2 text-sm text-fl-subtext">
+                        <span class="text-fl-success font-mono text-xs">✓</span>
+                        {{ item }}
+                    </li>
+                    {% endfor %}
+                </ul>
+                <div class="mt-4 border-t border-fl-border pt-4">
+                    <p class="text-xs font-mono text-fl-warning">
+                        ⚠ Deep scans are more aggressive and take longer.
+                        Ensure the client is aware before running.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="flex items-center gap-3">
+            <button type="submit"
+                    class="px-6 py-2.5 bg-fl-accent text-fl-bg text-sm font-bold tracking-widest uppercase
+                           hover:bg-fl-accentlt transition-colors rounded">
+                Run Deep Scan
+            </button>
+            <a href="/scans/{{ job.job_uuid }}/results"
+               class="px-6 py-2.5 border border-fl-border text-fl-subtext text-sm font-mono
+                      hover:text-fl-text transition-colors rounded">
+                Cancel
+            </a>
+        </div>
+
+    </form>
+</div>
+
+{% else %}
+<div class="border border-dashed border-fl-border rounded py-12 text-center max-w-xl">
+    <p class="text-fl-subtext text-sm">No active agents available.</p>
+    <p class="text-fl-dim text-xs font-mono mt-1">Deploy and activate an agent to run a deeper scan.</p>
+    <a href="/agents/prep/{{ client.client_uuid }}"
+       class="inline-block mt-4 text-xs font-mono text-fl-accent hover:text-fl-accentlt transition-colors">
+        Prep an agent →
+    </a>
+</div>
+{% endif %}
+
+{% endblock %}

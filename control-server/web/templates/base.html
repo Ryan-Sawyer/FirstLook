@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}FirstLook{% endblock %}</title>
+
+    <!-- Tailwind CSS CDN — replace with compiled output for production -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+
+    <!-- JetBrains Mono — monospace with character, suits a technical tool -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Syne', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        // FirstLook palette — dark terminal aesthetic with sharp amber accent
+                        fl: {
+                            bg:       '#0d0f12',
+                            surface:  '#13161b',
+                            border:   '#1e2330',
+                            muted:    '#2a3040',
+                            dim:      '#4a5568',
+                            text:     '#e2e8f0',
+                            subtext:  '#8892a4',
+                            accent:   '#f59e0b',   // amber
+                            accentlt: '#fcd34d',
+                            success:  '#10b981',
+                            danger:   '#ef4444',
+                            warning:  '#f59e0b',
+                            info:     '#3b82f6',
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'fade-in': 'fadeIn 0.3s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(6px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #0d0f12;
+            /* Subtle scanline texture */
+            background-image: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(255,255,255,0.012) 2px,
+                rgba(255,255,255,0.012) 4px
+            );
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #13161b; }
+        ::-webkit-scrollbar-thumb { background: #2a3040; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #f59e0b; }
+
+        /* HTMX loading indicator */
+        .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
+        .htmx-request .htmx-indicator { opacity: 1; }
+        .htmx-request.htmx-indicator { opacity: 1; }
+
+        /* Amber cursor on inputs */
+        input:focus, textarea:focus, select:focus {
+            caret-color: #f59e0b;
+        }
+
+        /* Monospace table data */
+        td.mono { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+
+        /* Status badge base */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.2rem 0.65rem;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .badge-prospect  { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+        .badge-active    { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+        .badge-archived  { background: rgba(74,85,104,0.3);   color: #8892a4; border: 1px solid rgba(74,85,104,0.4); }
+        .badge-pending   { background: rgba(245,158,11,0.15); color: #fcd34d; border: 1px solid rgba(245,158,11,0.3); }
+        .badge-inactive  { background: rgba(74,85,104,0.3);   color: #8892a4; border: 1px solid rgba(74,85,104,0.4); }
+        .badge-queued    { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+        .badge-running   { background: rgba(245,158,11,0.15); color: #fcd34d; border: 1px solid rgba(245,158,11,0.3); }
+        .badge-complete  { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+        .badge-failed    { background: rgba(239,68,68,0.15);  color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+        .badge-basic     { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+        .badge-deep      { background: rgba(245,158,11,0.15); color: #fcd34d; border: 1px solid rgba(245,158,11,0.3); }
+
+        /* Dot indicator */
+        .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+        .dot-active   { background: #10b981; box-shadow: 0 0 6px #10b981; }
+        .dot-pending  { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+        .dot-inactive { background: #4a5568; }
+        .dot-running  { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; animation: pulse 1.5s infinite; }
+        .dot-complete { background: #10b981; box-shadow: 0 0 6px #10b981; }
+        .dot-failed   { background: #ef4444; }
+        .dot-queued   { background: #3b82f6; }
+    </style>
+
+    {% block head %}{% endblock %}
+</head>
+
+<body class="text-fl-text min-h-screen font-sans">
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- Nav                                         -->
+    <!-- ═══════════════════════════════════════════ -->
+    <nav class="border-b border-fl-border bg-fl-surface sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+
+            <!-- Wordmark -->
+            <a href="/leads" class="flex items-center gap-3 group">
+                <div class="w-7 h-7 border border-fl-accent flex items-center justify-center">
+                    <svg viewBox="0 0 14 14" class="w-4 h-4 fill-fl-accent">
+                        <circle cx="5.5" cy="5.5" r="3.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                        <line x1="8.5" y1="8.5" x2="12.5" y2="12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <span class="font-bold text-base tracking-widest uppercase text-fl-text group-hover:text-fl-accent transition-colors">
+                    First<span class="text-fl-accent">Look</span>
+                </span>
+            </a>
+
+            <!-- Nav links -->
+            <div class="flex items-center gap-1">
+                <a href="/leads"
+                   class="px-4 py-1.5 text-sm font-mono tracking-wide rounded
+                          {% if request.url.path.startswith('/leads') %}text-fl-accent border border-fl-border bg-fl-muted{% else %}text-fl-subtext hover:text-fl-text{% endif %}
+                          transition-colors">
+                    Leads
+                </a>
+                <a href="/agents"
+                   class="px-4 py-1.5 text-sm font-mono tracking-wide rounded
+                          {% if request.url.path.startswith('/agents') %}text-fl-accent border border-fl-border bg-fl-muted{% else %}text-fl-subtext hover:text-fl-text{% endif %}
+                          transition-colors">
+                    Agents
+                </a>
+            </div>
+
+        </div>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- Page content                                -->
+    <!-- ═══════════════════════════════════════════ -->
+    <main class="max-w-6xl mx-auto px-6 py-8 animate-fade-in">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

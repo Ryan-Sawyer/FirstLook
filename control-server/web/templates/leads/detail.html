@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block title %}{{ client.name }} — FirstLook{% endblock %}
+
+{% block content %}
+
+<!-- Back + header -->
+<a href="/leads" class="text-fl-subtext text-xs font-mono hover:text-fl-accent transition-colors mb-6 inline-block">
+    ← Back to Leads
+</a>
+
+<div class="flex items-start justify-between mb-8">
+    <div>
+        <div class="flex items-center gap-3 mb-1">
+            <h1 class="text-2xl font-bold tracking-tight">{{ client.name }}</h1>
+            <span class="badge badge-{{ client.status.value }}">
+                <span class="dot dot-{{ client.status.value }}"></span>
+                {{ client.status.value }}
+            </span>
+        </div>
+        {% if client.contact_name %}
+        <p class="text-fl-subtext text-sm font-mono">
+            {{ client.contact_name }}
+            {% if client.contact_email %} · {{ client.contact_email }}{% endif %}
+            {% if client.contact_phone %} · {{ client.contact_phone }}{% endif %}
+        </p>
+        {% endif %}
+        <p class="text-fl-dim text-xs font-mono mt-1">{{ client.client_uuid }}</p>
+    </div>
+
+    <!-- Status change -->
+    <form method="POST" action="/leads/{{ client.client_uuid }}/status" class="flex items-center gap-2">
+        <select name="status"
+                class="bg-fl-surface border border-fl-border rounded px-3 py-1.5 text-xs font-mono
+                       text-fl-text focus:outline-none focus:border-fl-accent transition-colors">
+            {% for s in client_statuses %}
+            <option value="{{ s.value }}" {% if s == client.status %}selected{% endif %}>
+                {{ s.value|capitalize }}
+            </option>
+            {% endfor %}
+        </select>
+        <button type="submit"
+                class="px-3 py-1.5 border border-fl-border text-fl-subtext text-xs font-mono
+                       hover:text-fl-text hover:border-fl-accent transition-colors rounded">
+            Update
+        </button>
+    </form>
+</div>
+
+<!-- ═══ Agents ═══════════════════════════════════ -->
+<section class="mb-10">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xs font-mono uppercase tracking-widest text-fl-subtext">Agents</h2>
+        <a href="/agents/prep/{{ client.client_uuid }}"
+           class="text-xs font-mono text-fl-accent hover:text-fl-accentlt transition-colors">
+            + Prep Agent
+        </a>
+    </div>
+
+    {% if agents %}
+    <div class="border border-fl-border rounded overflow-hidden">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-fl-border bg-fl-surface">
+                    <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">Name</th>
+                    <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">Status</th>
+                    <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">IP</th>
+                    <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">Last Seen</th>
+                    <th class="px-5 py-3"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for agent in agents %}
+                <tr class="border-b border-fl-border last:border-0 hover:bg-fl-surface transition-colors">
+                    <td class="px-5 py-4 font-semibold">{{ agent.name }}</td>
+                    <td class="px-5 py-4">
+                        <span class="badge badge-{{ agent.status.value }}">
+                            <span class="dot dot-{{ agent.status.value }}"></span>
+                            {{ agent.status.value }}
+                        </span>
+                    </td>
+                    <td class="px-5 py-4 mono text-fl-subtext">{{ agent.ip_address or '—' }}</td>
+                    <td class="px-5 py-4 mono text-fl-subtext text-xs">
+                        {% if agent.last_seen_at %}
+                            {{ agent.last_seen_at.strftime('%Y-%m-%d %H:%M') }}
+                        {% else %}
+                            <span class="text-fl-dim">Never</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-5 py-4 text-right">
+                        {% if agent.status.value != 'inactive' %}
+                        <form method="POST" action="/agents/{{ agent.agent_uuid }}/decommission" class="inline">
+                            <button type="submit"
+                                    class="text-fl-dim text-xs font-mono hover:text-fl-danger transition-colors">
+                                Decommission
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="border border-dashed border-fl-border rounded py-8 text-center">
+        <p class="text-fl-subtext text-sm">No agents deployed.</p>
+        <a href="/agents/prep/{{ client.client_uuid }}"
+           class="inline-block mt-3 text-xs font-mono text-fl-accent hover:text-fl-accentlt transition-colors">
+            Prep your first agent →
+        </a>
+    </div>
+    {% endif %}
+</section>
+
+<!-- ═══ Scan Jobs ════════════════════════════════ -->
+<section>
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xs font-mono uppercase tracking-widest text-fl-subtext">Scan Jobs</h2>
+        {% if agents|selectattr('status.value', 'equalto', 'active')|list %}
+        <a href="/scans/{{ client.client_uuid }}/new"
+           class="text-xs font-mono text-fl-accent hover:text-fl-accentlt transition-colors">
+            + New Scan
+        </a>
+        {% endif %}
+    </div>
+
+    {% if scan_jobs %}
+    <div class="border border-fl-border rounded overflow-hidden">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-fl-border bg-fl-surface">
+                    <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">Type</th>
+                    <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">Status</th>
+                    <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">Subnets</th>
+                    <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">Started</th>
+                    <th class="px-5 py-3"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in scan_jobs %}
+                <tr class="border-b border-fl-border last:border-0 hover:bg-fl-surface transition-colors group">
+                    <td class="px-5 py-4">
+                        <span class="badge badge-{{ job.scan_type.value }}">{{ job.scan_type.value }}</span>
+                    </td>
+                    <td class="px-5 py-4">
+                        <span class="badge badge-{{ job.status.value }}">
+                            <span class="dot dot-{{ job.status.value }}"></span>
+                            {{ job.status.value }}
+                        </span>
+                    </td>
+                    <td class="px-5 py-4 mono text-fl-subtext text-xs">
+                        {{ job.target_subnets | join(', ') }}
+                    </td>
+                    <td class="px-5 py-4 mono text-fl-subtext text-xs">
+                        {% if job.started_at %}
+                            {{ job.started_at.strftime('%Y-%m-%d %H:%M') }}
+                        {% else %}
+                            <span class="text-fl-dim">Queued</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-5 py-4 text-right">
+                        <a href="/scans/{{ job.job_uuid }}/results"
+                           class="text-fl-accent text-xs font-mono hover:text-fl-accentlt transition-colors opacity-0 group-hover:opacity-100">
+                            Results →
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="border border-dashed border-fl-border rounded py-8 text-center">
+        <p class="text-fl-subtext text-sm">No scans run yet.</p>
+        {% if agents|selectattr('status.value', 'equalto', 'active')|list %}
+        <a href="/scans/{{ client.client_uuid }}/new"
+           class="inline-block mt-3 text-xs font-mono text-fl-accent hover:text-fl-accentlt transition-colors">
+            Run your first scan →
+        </a>
+        {% else %}
+        <p class="text-fl-dim text-xs font-mono mt-1">Deploy an active agent first.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</section>
+
+{% endblock %}

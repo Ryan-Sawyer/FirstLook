@@ -1,0 +1,61 @@
+services:
+
+  # ─────────────────────────────────────────
+  # PostgreSQL Database
+  # ─────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: firstlook-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - firstlook
+
+  # ─────────────────────────────────────────
+  # FirstLook Control Server
+  # ─────────────────────────────────────────
+  server:
+    build:
+      context: ..
+      dockerfile: docker/dockerfile.server
+    image: firstlook-server:latest
+    container_name: firstlook-server
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      SECRET_KEY: ${SECRET_KEY}
+      ITFLOW_URL: ${ITFLOW_URL}
+      ITFLOW_API_KEY: ${ITFLOW_API_KEY}
+      FIRSTLOOK_BASE_URL: ${FIRSTLOOK_BASE_URL}
+    ports:
+      - "${SERVER_PORT:-8000}:8000"
+    networks:
+      - firstlook
+
+# ─────────────────────────────────────────
+# Volumes
+# ─────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+
+# ─────────────────────────────────────────
+# Networks
+# ─────────────────────────────────────────
+networks:
+  firstlook:
+    driver: bridge

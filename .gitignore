@@ -1,0 +1,108 @@
+# =============================================================
+# FirstLook — .gitignore
+# =============================================================
+
+# ─────────────────────────────────────────
+# Environment & secrets
+# ─────────────────────────────────────────
+.env
+*.env
+.env.*
+!.env.example
+
+# ─────────────────────────────────────────
+# Python
+# ─────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+.eggs/
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+*.coveragerc
+
+# Mypy
+.mypy_cache/
+.dmypy.json
+
+# ─────────────────────────────────────────
+# Docker
+# ─────────────────────────────────────────
+# Never commit postgres data volumes
+docker/postgres/data/
+
+# ─────────────────────────────────────────
+# Database
+# ─────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ─────────────────────────────────────────
+# Agent runtime files
+# ─────────────────────────────────────────
+# Local offline queue — runtime only
+queue.json
+/var/lib/firstlook-agent/
+
+# ─────────────────────────────────────────
+# Alembic
+# ─────────────────────────────────────────
+# Keep migrations but ignore local alembic.ini overrides
+alembic.ini.local
+
+# ─────────────────────────────────────────
+# Editors & OS
+# ─────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+desktop.ini
+
+# JetBrains
+.idea/
+*.iml
+*.iws
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# ─────────────────────────────────────────
+# Logs
+# ─────────────────────────────────────────
+*.log
+logs/
+
+# ─────────────────────────────────────────
+# Archives
+# ─────────────────────────────────────────
+*.tar.gz
+*.zip
