@@ -99,12 +99,17 @@ def leads_update_status(
 
 @router.get("/agents", response_class=HTMLResponse)
 def agents_index(request: Request, db: Session = Depends(get_db)):
-    agents = db.query(Agent).order_by(Agent.created_at.desc()).all()
+    from datetime import datetime, timezone
+    from sqlalchemy.orm import joinedload
+    agents = db.query(Agent)\
+        .options(joinedload(Agent.client))\
+        .order_by(Agent.created_at.desc())\
+        .all()
     return templates.TemplateResponse("agents/index.html", {
         "request": request,
         "agents": agents,
+        "now": datetime.now(timezone.utc),
     })
-
 
 @router.get("/agents/prep/{client_uuid}", response_class=HTMLResponse)
 def agents_prep_form(request: Request, client_uuid: uuid.UUID, db: Session = Depends(get_db)):

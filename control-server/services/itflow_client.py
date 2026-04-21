@@ -38,16 +38,15 @@ class ITflowAPIError(Exception):
 #   5  = Printer
 #   6  = Other
 #
-_ASSET_TYPE_MAP: dict[AssetType, int] = {
-    AssetType.server:       3,
-    AssetType.workstation:  1,
-    AssetType.switch:       4,
-    AssetType.router:       4,
-    AssetType.ap:           4,
-    AssetType.printer:      5,
-    AssetType.unknown:      6,
+_ASSET_TYPE_MAP: dict[AssetType, str] = {
+    AssetType.server:       "Server",
+    AssetType.workstation:  "Workstation",
+    AssetType.switch:       "Switch",
+    AssetType.router:       "Firewall/Router",
+    AssetType.ap:           "Access Point",
+    AssetType.printer:      "Printer",
+    AssetType.unknown:      "Other",
 }
-
 
 # =============================================================
 # ITflow Client

@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}Agents — FirstLook{% endblock %}
+
+{% block content %}
+
+<!-- Page header -->
+<div class="flex items-center justify-between mb-8">
+    <div>
+        <h1 class="text-2xl font-bold tracking-tight">Agents</h1>
+        <p class="text-fl-subtext text-sm mt-1 font-mono">{{ agents|length }} total</p>
+    </div>
+</div>
+
+{% if agents %}
+
+<!-- Summary stats -->
+<div class="grid grid-cols-4 gap-4 mb-8">
+    {% set active   = agents|selectattr('status.value', 'equalto', 'active')|list|length %}
+    {% set pending  = agents|selectattr('status.value', 'equalto', 'pending')|list|length %}
+    {% set inactive = agents|selectattr('status.value', 'equalto', 'inactive')|list|length %}
+
+    {% for label, value, dot in [
+        ('Total', agents|length, 'dot-active'),
+        ('Active', active, 'dot-active'),
+        ('Pending', pending, 'dot-pending'),
+        ('Inactive', inactive, 'dot-inactive')
+    ] %}
+    <div class="border border-fl-border rounded px-5 py-4 bg-fl-surface">
+        <p class="text-3xl font-bold text-fl-accent font-mono">{{ value }}</p>
+        <div class="flex items-center gap-2 mt-1">
+            <span class="dot {{ dot }}"></span>
+            <p class="text-xs font-mono uppercase tracking-widest text-fl-subtext">{{ label }}</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Agents table -->
+<div class="border border-fl-border rounded overflow-hidden">
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="border-b border-fl-border bg-fl-surface">
+                <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">Agent</th>
+                <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">Client</th>
+                <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">Status</th>
+                <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">IP Address</th>
+                <th class="text-left px-5 py-3 text-fl-subtext font-mono text-xs uppercase tracking-widest">Last Seen</th>
+                <th class="px-5 py-3"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for agent in agents %}
+            <tr class="border-b border-fl-border last:border-0 hover:bg-fl-surface transition-colors group">
+
+                <!-- Agent name + UUID -->
+                <td class="px-5 py-4">
+                    <p class="font-semibold">{{ agent.name }}</p>
+                    <p class="text-fl-dim text-xs font-mono mt-0.5">{{ agent.agent_uuid }}</p>
+                </td>
+
+                <!-- Client link -->
+                <td class="px-5 py-4">
+                    {% if agent.client %}
+                    <a href="/leads/{{ agent.client_uuid }}"
+                       class="text-fl-accent hover:text-fl-accentlt transition-colors font-mono text-xs">
+                        {{ agent.client.name }}
+                    </a>
+                    {% else %}
+                    <span class="text-fl-dim text-xs font-mono">—</span>
+                    {% endif %}
+                </td>
+
+                <!-- Status badge -->
+                <td class="px-5 py-4">
+                    <span class="badge badge-{{ agent.status.value }}">
+                        <span class="dot dot-{{ agent.status.value }}"></span>
+                        {{ agent.status.value }}
+                    </span>
+                </td>
+
+                <!-- IP address -->
+                <td class="px-5 py-4 mono text-fl-subtext">
+                    {{ agent.ip_address or '—' }}
+                </td>
+
+                <!-- Last seen -->
+                <td class="px-5 py-4 mono text-fl-subtext text-xs">
+                    {% if agent.last_seen_at %}
+                        {% set delta = (now - agent.last_seen_at).total_seconds() %}
+                        {% if delta < 120 %}
+                            <span class="text-fl-success">Just now</span>
+                        {% elif delta < 3600 %}
+                            {{ (delta / 60)|int }}m ago
+                        {% elif delta < 86400 %}
+                            {{ (delta / 3600)|int }}h ago
+                        {% else %}
+                            {{ agent.last_seen_at.strftime('%Y-%m-%d %H:%M') }}
+                        {% endif %}
+                    {% else %}
+                        <span class="text-fl-dim">Never</span>
+                    {% endif %}
+                </td>
+
+                <!-- Actions -->
+                <td class="px-5 py-4 text-right">
+                    <div class="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <a href="/leads/{{ agent.client_uuid }}"
+                           class="text-fl-accent text-xs font-mono hover:text-fl-accentlt transition-colors">
+                            View Lead →
+                        </a>
+                        {% if agent.status.value != 'inactive' %}
+                        <form method="POST" action="/agents/{{ agent.agent_uuid }}/decommission" class="inline">
+                            <button type="submit"
+                                    class="text-fl-dim text-xs font-mono hover:text-fl-danger transition-colors">
+                                Decommission
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </td>
+
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% else %}
+
+<!-- Empty state -->
+<div class="border border-dashed border-fl-border rounded-lg py-20 text-center">
+    <div class="w-12 h-12 border border-fl-border flex items-center justify-center mx-auto mb-4">
+        <svg viewBox="0 0 24 24" class="w-5 h-5 stroke-fl-dim fill-none" stroke-width="1.5">
+            <rect x="2" y="3" width="20" height="14" rx="2"/>
+            <path d="M8 21h8M12 17v4" stroke-linecap="round"/>
+        </svg>
+    </div>
+    <p class="text-fl-subtext text-sm">No agents deployed yet.</p>
+    <p class="text-fl-dim text-xs font-mono mt-1">
+        Create a lead and prep an agent to get started.
+    </p>
+    <a href="/leads"
+       class="inline-block mt-5 px-5 py-2 border border-fl-accent text-fl-accent text-sm font-mono
+              hover:bg-fl-accent hover:text-fl-bg transition-colors rounded">
+        Go to Leads
+    </a>
+</div>
+
+{% endif %}
+
+{% endblock %}
