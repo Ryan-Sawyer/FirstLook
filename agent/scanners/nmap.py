@@ -196,6 +196,15 @@ def run_deep_scan(subnets: list[str], throttle: float = 0.5) -> list[dict]:
     nm = nmap.PortScanner()
     assets = []
 
+    is_root = os.geteuid() == 0
+    scan_args = (
+        f"-sS -sV -O -T4 --top-ports 1000 "
+        f"--host-timeout 120s --scan-delay {throttle}s"
+    ) if is_root else (
+        f"-sT -sV -T4 --top-ports 1000 "
+        f"--host-timeout 120s --scan-delay {throttle}s"
+    )
+
     for subnet in subnets:
         try:
             ipaddress.ip_network(subnet, strict=False)
@@ -208,7 +217,7 @@ def run_deep_scan(subnets: list[str], throttle: float = 0.5) -> list[dict]:
         try:
             nm.scan(
                 hosts=subnet,
-                arguments=f"-sS -sV -O -A -p- -T3 --scan-delay {throttle}s",
+                arguments=scan_args,
             )
         except Exception as e:
             print(f"[NMAP] Deep scan failed for {subnet}: {e}")
