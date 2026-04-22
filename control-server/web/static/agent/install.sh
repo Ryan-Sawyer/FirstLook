@@ -48,7 +48,7 @@ die()     { error "$*"; exit 1; }
 # ─────────────────────────────────────────
 # Constants
 # ─────────────────────────────────────────
-AGENT_USER="firstlook-agent"
+AGENT_USER="root"
 INSTALL_DIR="/opt/firstlook-agent"
 CONFIG_DIR="/etc/firstlook-agent"
 DATA_DIR="/var/lib/firstlook-agent"
