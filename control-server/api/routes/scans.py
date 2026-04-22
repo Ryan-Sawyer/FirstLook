@@ -48,6 +48,107 @@ def list_scan_jobs(
 
     return query.order_by(ScanJob.created_at.desc()).all()
 
+# =============================================================
+# POST /api/scans/results
+# =============================================================
+
+@router.post(
+    "/submit",
+    response_model=ScanResultsResponse,
+    summary="Submit scan results — called by the agent on job completion",
+)
+def submit_scan_results(
+    payload: ScanResultsSubmit,
+    db: Session = Depends(get_db),
+):
+    """
+    The agent POSTs all discovered assets and interfaces here
+    when a scan job completes.
+
+    The deduplication service compares incoming MAC addresses
+    against existing interface records for the client and avoids
+    creating duplicate asset records across scan runs.
+    """
+    job = _get_job_or_404(db, payload.job_uuid)
+
+    assets_created = 0
+    assets_deduplicated = 0
+
+    for asset_data in payload.assets:
+        # Check each interface MAC against existing records for this client
+        is_duplicate = deduplicate_assets(
+            db=db,
+            client_uuid=job.client_uuid,
+            interfaces=asset_data.interfaces,
+        )
+
+        if is_duplicate:
+            assets_deduplicated += 1
+            continue
+
+        # Create the asset
+        asset = Asset(
+            client_uuid=job.client_uuid,
+            job_uuid=job.job_uuid,
+            hostname=asset_data.hostname,
+            asset_type=asset_data.asset_type,
+            os_fingerprint=asset_data.os_fingerprint,
+            snmp_description=asset_data.snmp_description,
+        )
+        db.add(asset)
+        db.flush()  # Flush to get asset_uuid before creating interfaces
+
+        # Create interfaces
+        for iface_data in asset_data.interfaces:
+            interface = Interface(
+                asset_uuid=asset.asset_uuid,
+                client_uuid=job.client_uuid,
+                mac_address=iface_data.mac_address,
+                ipv4_address=iface_data.ipv4_address,
+                ipv6_address=iface_data.ipv6_address,
+                vlan_id=iface_data.vlan_id,
+                interface_name=iface_data.interface_name,
+                discovered_via=iface_data.discovered_via,
+            )
+            db.add(interface)
+
+        assets_created += 1
+
+    # Mark the job complete
+    from datetime import datetime, timezone
+    job.status = JobStatus.complete
+    job.completed_at = datetime.now(timezone.utc)
+
+    db.commit()
+
+    return ScanResultsResponse(
+        job_uuid=job.job_uuid,
+        assets_received=len(payload.assets),
+        assets_created=assets_created,
+        assets_deduplicated=assets_deduplicated,
+    )
+
+# =============================================================
+# GET /api/scans/pending/{agent_uuid}
+# =============================================================
+
+@router.get(
+    "/pending/{agent_uuid}",
+    response_model=List[ScanJobResponse],
+    summary="Get queued scan jobs for an agent — polled by the agent",
+)
+def get_pending_jobs(
+    agent_uuid: uuid.UUID,
+    db: Session = Depends(get_db),
+):
+    """
+    The agent polls this endpoint to check for queued work.
+    Returns all jobs in 'queued' status assigned to this agent.
+    """
+    return db.query(ScanJob).filter(
+        ScanJob.agent_uuid == agent_uuid,
+        ScanJob.status == JobStatus.queued,
+    ).all()
 
 # =============================================================
 # POST /api/scans/{client_uuid}
@@ -135,111 +236,6 @@ def update_scan_job(
     db.commit()
     return job
 
-
-# =============================================================
-# GET /api/scans/pending/{agent_uuid}
-# =============================================================
-
-@router.get(
-    "/pending/{agent_uuid}",
-    response_model=List[ScanJobResponse],
-    summary="Get queued scan jobs for an agent — polled by the agent",
-)
-def get_pending_jobs(
-    agent_uuid: uuid.UUID,
-    db: Session = Depends(get_db),
-):
-    """
-    The agent polls this endpoint to check for queued work.
-    Returns all jobs in 'queued' status assigned to this agent.
-    """
-    return db.query(ScanJob).filter(
-        ScanJob.agent_uuid == agent_uuid,
-        ScanJob.status == JobStatus.queued,
-    ).all()
-
-
-# =============================================================
-# POST /api/scans/results
-# =============================================================
-
-@router.post(
-    "/submit",
-    response_model=ScanResultsResponse,
-    summary="Submit scan results — called by the agent on job completion",
-)
-def submit_scan_results(
-    payload: ScanResultsSubmit,
-    db: Session = Depends(get_db),
-):
-    """
-    The agent POSTs all discovered assets and interfaces here
-    when a scan job completes.
-
-    The deduplication service compares incoming MAC addresses
-    against existing interface records for the client and avoids
-    creating duplicate asset records across scan runs.
-    """
-    job = _get_job_or_404(db, payload.job_uuid)
-
-    assets_created = 0
-    assets_deduplicated = 0
-
-    for asset_data in payload.assets:
-        # Check each interface MAC against existing records for this client
-        is_duplicate = deduplicate_assets(
-            db=db,
-            client_uuid=job.client_uuid,
-            interfaces=asset_data.interfaces,
-        )
-
-        if is_duplicate:
-            assets_deduplicated += 1
-            continue
-
-        # Create the asset
-        asset = Asset(
-            client_uuid=job.client_uuid,
-            job_uuid=job.job_uuid,
-            hostname=asset_data.hostname,
-            asset_type=asset_data.asset_type,
-            os_fingerprint=asset_data.os_fingerprint,
-            snmp_description=asset_data.snmp_description,
-        )
-        db.add(asset)
-        db.flush()  # Flush to get asset_uuid before creating interfaces
-
-        # Create interfaces
-        for iface_data in asset_data.interfaces:
-            interface = Interface(
-                asset_uuid=asset.asset_uuid,
-                client_uuid=job.client_uuid,
-                mac_address=iface_data.mac_address,
-                ipv4_address=iface_data.ipv4_address,
-                ipv6_address=iface_data.ipv6_address,
-                vlan_id=iface_data.vlan_id,
-                interface_name=iface_data.interface_name,
-                discovered_via=iface_data.discovered_via,
-            )
-            db.add(interface)
-
-        assets_created += 1
-
-    # Mark the job complete
-    from datetime import datetime, timezone
-    job.status = JobStatus.complete
-    job.completed_at = datetime.now(timezone.utc)
-
-    db.commit()
-
-    return ScanResultsResponse(
-        job_uuid=job.job_uuid,
-        assets_received=len(payload.assets),
-        assets_created=assets_created,
-        assets_deduplicated=assets_deduplicated,
-    )
-
-
 # =============================================================
 # Helpers
 # =============================================================
@@ -252,3 +248,4 @@ def _get_job_or_404(db: Session, job_uuid: uuid.UUID) -> ScanJob:
             detail=f"Scan job {job_uuid} not found",
         )
     return job
+docker exec firstlook-server grep -n "submit\|results" /app/api/routes/scans.py
