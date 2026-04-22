@@ -164,7 +164,7 @@ def get_pending_jobs(
 # =============================================================
 
 @router.post(
-    "/results",
+    "/submit",
     response_model=ScanResultsResponse,
     summary="Submit scan results — called by the agent on job completion",
 )

@@ -129,7 +129,7 @@ class PushClient:
         """
         try:
             response = httpx.post(
-                f"{self.config.server_url}/api/scans/results",
+                f"{self.config.server_url}/api/scans/submit",
                 headers=self.headers,
                 json=payload,
                 timeout=TIMEOUT,
