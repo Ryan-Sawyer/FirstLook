@@ -171,6 +171,10 @@ if ! id "$AGENT_USER" &>/dev/null; then
         --shell /usr/sbin/nologin \
         --comment "FirstLook Field Agent" \
         "$AGENT_USER"
+    log "Configuring nmap sudo access..."
+    echo "${AGENT_USER} ALL=(ALL) NOPASSWD: /usr/bin/nmap" /etc/sudoers.d/firstlook-nmap
+    chmod 440 /etc/sudoers.d/firstlook-nmap
+    success "nmap sudo access configured"
 else
     log "User ${AGENT_USER} already exists — skipping"
 fi

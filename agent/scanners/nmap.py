@@ -156,7 +156,8 @@ def run_basic_scan(subnets: list[str], throttle: float = 0.5) -> list[dict]:
         try:
             nm.scan(
                 hosts=subnet,
-                arguments=f"-sS -O -T3 --top-ports 1000 --scan-delay {throttle}s",
+                arguments=f"-sS -O -T4 --top-ports 1000 --scan-delay {throttle}s",
+                sudo=True,
             )
         except Exception as e:
             print(f"[NMAP] Scan failed for {subnet}: {e}")
