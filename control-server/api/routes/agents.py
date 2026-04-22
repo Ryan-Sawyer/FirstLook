@@ -149,13 +149,31 @@ def agent_heartbeat(
     Called periodically by the agent to signal it is alive.
     Updates last_seen_at and optionally refreshes the IP address.
     """
-    from datetime import datetime, timezone
+    from datetime import datetime, timezone, timedelta
+    from db.models import ScanJob, JobStatus
 
     agent = _get_or_404(db, agent_uuid)
 
     agent.last_seen_at = datetime.now(timezone.utc)
     if payload.ip_address:
         agent.ip_address = payload.ip_address
+
+    # Reset any jobs stuck in running state for this agent.
+    # A job is considered stuck if it has been running for
+    # more than 2 hours — covers even the longest deep scans.
+    stuck_threshold = datetime.now(timezone.utc) - timedelta(hours=2)
+    stuck_jobs = db.query(ScanJob).filter(
+        ScanJob.agent_uuid == agent_uuid,
+        ScanJob.status == JobStatus.running,
+        ScanJob.started_at < stuck_threshold,
+    ).all()
+
+    if stuck_jobs:
+        for job in stuck_jobs:
+            print(f"[RECOVERY] Resetting stuck job {job.job_uuid} for agent {agent_uuid}")
+            job.status = JobStatus.queued
+            job.started_at = None
+
 
     db.commit()
     return agent
