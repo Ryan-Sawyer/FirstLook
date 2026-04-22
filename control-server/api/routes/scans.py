@@ -75,32 +75,30 @@ def submit_scan_results(
     assets_deduplicated = 0
 
     for asset_data in payload.assets:
-        # Check each interface MAC against existing records for this client
         existing_uuid = deduplicate_assets(
             db=db,
             client_uuid=job.client_uuid,
             interfaces=asset_data.interfaces,
         )
 
-    if existing_uuid:
-        # Enrich existing asset with data from deeper scan
-        existing = db.query(Asset).filter(
-            Asset.asset_uuid == existing_uuid
-        ).first()
+        if existing_uuid:
+            existing = db.query(Asset).filter(
+                Asset.asset_uuid == existing_uuid
+            ).first()
 
-        if existing:
-            if asset_data.os_fingerprint:
-                existing.os_fingerprint = asset_data.os_fingerprint
-            if asset_data.snmp_description:
-                existing.snmp_description = asset_data.snmp_description
-            if asset_data.hostname and not existing.hostname:
-                existing.hostname = asset_data.hostname
-            if asset_data.asset_type.value != "unknown":
-                existing.asset_type = asset_data.asset_type
+            if existing:
+                if asset_data.os_fingerprint:
+                    existing.os_fingerprint = asset_data.os_fingerprint
+                if asset_data.snmp_description:
+                    existing.snmp_description = asset_data.snmp_description
+                if asset_data.hostname and not existing.hostname:
+                    existing.hostname = asset_data.hostname
+                if asset_data.asset_type.value != "unknown":
+                    existing.asset_type = asset_data.asset_type
 
-        assets_deduplicated += 1
-    continue
-        # Create the asset
+            assets_deduplicated += 1
+            continue
+
         asset = Asset(
             client_uuid=job.client_uuid,
             job_uuid=job.job_uuid,
@@ -110,9 +108,8 @@ def submit_scan_results(
             snmp_description=asset_data.snmp_description,
         )
         db.add(asset)
-        db.flush()  # Flush to get asset_uuid before creating interfaces
+        db.flush()
 
-        # Create interfaces
         for iface_data in asset_data.interfaces:
             interface = Interface(
                 asset_uuid=asset.asset_uuid,
