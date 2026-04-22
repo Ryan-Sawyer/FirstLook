@@ -248,4 +248,3 @@ def _get_job_or_404(db: Session, job_uuid: uuid.UUID) -> ScanJob:
             detail=f"Scan job {job_uuid} not found",
         )
     return job
-docker exec firstlook-server grep -n "submit\|results" /app/api/routes/scans.py
