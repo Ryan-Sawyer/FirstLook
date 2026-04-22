@@ -146,7 +146,7 @@ def deduplicate_assets(
     db: Session,
     client_uuid: uuid.UUID,
     interfaces: List[InterfaceCreate],
-) -> bool:
+) -> uuid.UUID | None:
     """
     Check whether an incoming asset is a duplicate of one already
     recorded for this client, based on MAC address matching.
@@ -166,14 +166,14 @@ def deduplicate_assets(
         # No usable MACs — cannot deduplicate. Treat as new asset.
         # This avoids silently dropping assets from devices that
         # don't expose a MAC (rare but possible with some SNMP responses).
-        return False
+        return None
 
     existing = db.query(Interface).filter(
         Interface.client_uuid == client_uuid,
         Interface.mac_address.in_(dedup_macs),
     ).first()
 
-    return existing is not None
+    return existing.asset_uuid if existing else None
 
 
 def find_existing_asset_uuid(
