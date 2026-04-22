@@ -136,6 +136,16 @@ log "Enabling lldpd service..."
 systemctl enable lldpd --quiet
 systemctl start lldpd || warn "lldpd failed to start — LLDP discovery will be unavailable"
 
+# Grant nmap raw socket access so SYN scans work without root
+log "Setting nmap capabilities..."
+NMAP_BIN=$(which nmap)
+if [ -n "$NMAP_BIN" ]; then
+    setcap cap_net_raw,cap_net_admin+eip "$NMAP_BIN"
+    success "nmap capabilities set — SYN scanning enabled"
+else
+    warn "nmap not found — skipping capability set"
+fi
+
 # ─────────────────────────────────────────
 # Python version check
 # ─────────────────────────────────────────
