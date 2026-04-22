@@ -253,6 +253,8 @@ Group=${AGENT_USER}
 WorkingDirectory=${INSTALL_DIR}
 ExecStart=${INSTALL_DIR}/venv/bin/python agent.py
 
+Environment=PYTHONUNBUFFERED=1
+
 # Load config as environment variables
 EnvironmentFile=${CONFIG_DIR}/agent.conf
 
