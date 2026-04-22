@@ -99,7 +99,7 @@ def submit_scan_results(
                 existing.asset_type = asset_data.asset_type
 
         assets_deduplicated += 1
-        continue
+    continue
         # Create the asset
         asset = Asset(
             client_uuid=job.client_uuid,
