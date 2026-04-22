@@ -171,13 +171,14 @@ if ! id "$AGENT_USER" &>/dev/null; then
         --shell /usr/sbin/nologin \
         --comment "FirstLook Field Agent" \
         "$AGENT_USER"
+else
+    log "User ${AGENT_USER} already exists — skipping"
+fi
+
     log "Configuring nmap sudo access..."
     echo "${AGENT_USER} ALL=(ALL) NOPASSWD: /usr/bin/nmap" /etc/sudoers.d/firstlook-nmap
     chmod 440 /etc/sudoers.d/firstlook-nmap
     success "nmap sudo access configured"
-else
-    log "User ${AGENT_USER} already exists — skipping"
-fi
 
 # ─────────────────────────────────────────
 # Create directories
@@ -279,7 +280,7 @@ StartLimitInterval=300s
 StartLimitBurst=5
 
 # Security hardening
-NoNewPrivileges=yes
+NoNewPrivileges=no
 ProtectSystem=strict
 ProtectHome=yes
 ReadWritePaths=${DATA_DIR}
