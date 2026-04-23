@@ -67,5 +67,5 @@ def generate_install_command(base_url: str, agent_uuid: str, plain_token: str) -
     """
     return (
         f"curl -sSL {base_url}/agent/install.sh | "
-        f"bash -s -- --server {base_url} --agent-id {agent_uuid} --token {plain_token}"
+        f"sudo bash -s -- --server {base_url} --agent-id {agent_uuid} --token {plain_token}"
     )
