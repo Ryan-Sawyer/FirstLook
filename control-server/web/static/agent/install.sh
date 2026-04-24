@@ -175,10 +175,10 @@ else
     log "User ${AGENT_USER} already exists — skipping"
 fi
 
-    log "Configuring nmap sudo access..."
-    echo "${AGENT_USER} ALL=(ALL) NOPASSWD: /usr/bin/nmap" /etc/sudoers.d/firstlook-nmap
-    chmod 440 /etc/sudoers.d/firstlook-nmap
-    success "nmap sudo access configured"
+#    log "Configuring nmap sudo access..."
+#    echo "${AGENT_USER} ALL=(ALL) NOPASSWD: /usr/bin/nmap" /etc/sudoers.d/firstlook-nmap
+#    chmod 440 /etc/sudoers.d/firstlook-nmap
+#    success "nmap sudo access configured"
 
 # ─────────────────────────────────────────
 # Create directories
