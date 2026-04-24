@@ -17,3 +17,6 @@ easysnmp==0.2.6
 # Scapy — used by lldp.py if lldpd/lldpctl is unavailable
 # as a fallback passive capture approach
 scapy==2.5.0
+
+# MAC-VENDOR-LOOKUP - used by layer0.py to classify device type by MAC Vendor
+mac-vendor-lookup==0.1.12

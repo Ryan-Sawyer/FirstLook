@@ -76,6 +76,23 @@
                 ></textarea>
                 <p class="text-fl-dim text-xs font-mono mt-2">One CIDR range per line.</p>
             </div>
+            <!-- DNS Server for Reverse Hostname Lookup -->
+            <div class="px-6 py-5 border-b border-fl-border">
+                <label class="block text-xs font-mono uppercase tracking-widest text-fl-subtext mb-2">
+                    DNS Server <span class="text-fl-dim">(optional — auto-detected if blank)</span>
+                </label>
+                <input
+                    type="text"
+                    name="dns_server"
+                    placeholder="192.168.1.1"
+                    class="w-full bg-fl-bg border border-fl-border rounded px-4 py-2.5 text-sm
+                    text-fl-text placeholder-fl-dim font-mono
+                    focus:outline-none focus:border-fl-accent transition-colors"
+                />
+                <p class="text-fl-dim text-xs font-mono mt-2">
+                    Leave blank to use the agent's configured DNS server.
+                </p>
+            </div>
 
         </div>
 

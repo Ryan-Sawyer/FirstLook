@@ -101,6 +101,7 @@ CREATE TABLE scan_jobs (
     status              job_status NOT NULL DEFAULT 'queued',
     scan_type           scan_type NOT NULL DEFAULT 'basic',
     target_subnets      JSONB NOT NULL DEFAULT '[]',
+    dns_server          VARCHAR(45),
     started_at          TIMESTAMPTZ,
     completed_at        TIMESTAMPTZ,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),

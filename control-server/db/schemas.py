@@ -127,9 +127,8 @@ class ScanJobCreate(BaseSchema):
     """Payload to create and dispatch a new scan job."""
     agent_uuid:     uuid.UUID
     scan_type:      ScanType                = ScanType.basic
-    target_subnets: List[str]               = Field(..., min_length=1,
-                                                    description="List of CIDR ranges e.g. ['192.168.1.0/24']")
-
+    target_subnets: List[str]               = Field(..., min_length=1, description="List of CIDR ranges e.g. ['192.168.1.0/24']")
+    dns_server:     Optional[str]           = Field(None, description="DNS server IP for PTR lookups")
 
 class ScanJobUpdate(BaseSchema):
     """Payload sent by the agent to update job status."""

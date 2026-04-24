@@ -25,80 +25,48 @@ from scanners import dns, lldp, nmap, snmp
 # =============================================================
 
 BANNER = """
-  ___  _         _    _              _
- | __||_| _ _  _| |_ | |  ___  ___ | |__
- | _| | || '_|_/  _| | | / _ \/ _ \| / /
- |_|  |_||_|   \__| |_|  \___/\___/|_\_\\
-
+ _____ _          _   _                _
+|  ___(_)_ __ ___| |_| |    ___   ___ | | __
+| |_  | | '__/ __| __| |   / _ \ / _ \| |/ /
+|  _| | | |  \__ \ |_| |__| (_) | (_) |   <
+|_|   |_|_|  |___/\__|_____\___/ \___/|_|\_\
  Open source network discovery for MSPs.
  Control server: {server}
  Agent UUID:     {uuid}
 """
 
 
-def run_scan_job(job: dict, config, push_client: PushClient) -> None:
-    """
-    Execute a single scan job end-to-end.
 
-    Args:
-        job:        Scan job dict from the control server.
-        config:     Loaded AgentConfig.
-        push_client: Initialised PushClient.
-    """
+def run_scan_job(job: dict, config, push_client: PushClient) -> None:
     job_uuid    = job["job_uuid"]
     scan_type   = job.get("scan_type", "basic")
     subnets     = job.get("target_subnets", [])
+    dns_server  = job.get("dns_server")
 
     print(f"\n[JOB] Starting {scan_type} scan — job {job_uuid}")
     print(f"[JOB] Target subnets: {', '.join(subnets)}")
+    if dns_server:
+        print(f"[JOB] DNS server override: {dns_server}")
 
-    # Mark running
     push_client.mark_job_running(job_uuid)
 
     try:
-        # ─────────────────────────────────────────
-        # Step 1 — LLDP discovery (passive, fast)
-        # ─────────────────────────────────────────
-        print("\n[JOB] Step 1/4 — LLDP discovery")
-        lldp_assets = lldp.run_lldp_discovery()
+        if scan_type == "basic":
+            print("\n[JOB] Running Layer 0 discovery")
+            assets = run_layer0(subnets=subnets, dns_server=dns_server)
 
-        # ─────────────────────────────────────────
-        # Step 2 — Nmap scan
-        # ─────────────────────────────────────────
-        print(f"\n[JOB] Step 2/4 — Nmap {scan_type} scan")
-        if scan_type == "deep":
-            nmap_assets = nmap.run_deep_scan(subnets, throttle=config.scan_throttle)
+        elif scan_type == "deep":
+            print("\n[JOB] Running Layer 0 discovery")
+            assets = run_layer0(subnets=subnets, dns_server=dns_server)
+            # TODO: Layer 1 — SNMP enrichment
+            # TODO: Layer 2 — Port scan + service detection
+
         else:
-            nmap_assets = nmap.run_basic_scan(subnets, throttle=config.scan_throttle)
+            print(f"[JOB] Unknown scan type: {scan_type} — defaulting to Layer 0")
+            assets = run_layer0(subnets=subnets, dns_server=dns_server)
 
-        # ─────────────────────────────────────────
-        # Step 3 — SNMP enrichment
-        # ─────────────────────────────────────────
-        print(f"\n[JOB] Step 3/4 — SNMP enrichment ({len(nmap_assets)} hosts)")
-        snmp.enrich_assets(nmap_assets)
-
-        # ─────────────────────────────────────────
-        # Step 4 — Reverse DNS
-        # ─────────────────────────────────────────
-        print(f"\n[JOB] Step 4/4 — Reverse DNS resolution")
-        dns.enrich_assets_dns(nmap_assets)
-
-        # ─────────────────────────────────────────
-        # Combine and deduplicate before pushing
-        # ─────────────────────────────────────────
-        # LLDP assets go first — they're typically network devices
-        # that SNMP/nmap may also have found. The server-side
-        # deduplication handles MAC-based merging.
-        all_assets = lldp_assets + nmap_assets
-
-        print(f"\n[JOB] Scan complete — {len(all_assets)} total assets")
-        print(f"[JOB]   LLDP:  {len(lldp_assets)}")
-        print(f"[JOB]   Nmap:  {len(nmap_assets)}")
-
-        # ─────────────────────────────────────────
-        # Push results
-        # ─────────────────────────────────────────
-        push_client.push_results(job_uuid, all_assets)
+        print(f"\n[JOB] Scan complete — {len(assets)} total assets")
+        push_client.push_results(job_uuid, assets)
 
     except Exception as e:
         print(f"[JOB] Scan failed with exception: {e}")
@@ -107,23 +75,16 @@ def run_scan_job(job: dict, config, push_client: PushClient) -> None:
 
 
 def main() -> None:
-    # Load config
     config = load_config()
 
     print(BANNER.format(server=config.server_url, uuid=config.agent_uuid))
 
-    # Register with control server
     print("[AGENT] Registering with control server...")
     registered = register(config)
     if not registered:
-        print("[AGENT] Registration failed. Retrying in 30 seconds...")
-        # Keep retrying registration — don't exit. The server may be
-        # temporarily unavailable.
+        print("[AGENT] Registration failed — will retry on next heartbeat cycle")
 
-    # Initialise push client
     push_client = PushClient(config)
-
-    # Counters for heartbeat timing
     last_heartbeat = 0.0
 
     print(f"[AGENT] Entering main loop. Poll interval: {config.poll_interval}s")
@@ -131,12 +92,10 @@ def main() -> None:
     while True:
         now = time.time()
 
-        # ── Heartbeat ──────────────────────────────
         if now - last_heartbeat >= config.heartbeat_interval:
             send_heartbeat(config)
             last_heartbeat = now
 
-        # ── Poll for jobs ──────────────────────────
         jobs = push_client.get_pending_jobs()
 
         if jobs:

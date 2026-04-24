@@ -192,6 +192,7 @@ def scans_new_submit(
     agent_uuid: str = Form(...),
     scan_type: str = Form(...),
     target_subnets: str = Form(...),
+    dns_server: str = Form(""),
     db: Session = Depends(get_db),
 ):
     # Parse subnets — one per line
@@ -202,6 +203,7 @@ def scans_new_submit(
         agent_uuid=uuid.UUID(agent_uuid),
         scan_type=ScanType(scan_type),
         target_subnets=subnets,
+        dns_server=dns_server or None,
         status=JobStatus.queued,
     )
     db.add(job)
